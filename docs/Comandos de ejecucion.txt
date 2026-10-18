@@ -1,0 +1,10 @@
+comandos de ejecución: 
+
+Inicializar API de pagos
+
+& "C:\Program Files\JetBrains\IntelliJ IDEA 2025.2.2\jbr\bin\java.exe" -jar external\payment-api.jar
+
+Abrir aplicación grafica:
+
+$env:JAVA_HOME = "C:\Program Files\JetBrains\IntelliJ IDEA 2025.2.2\jbr"
+.\gradlew.bat run

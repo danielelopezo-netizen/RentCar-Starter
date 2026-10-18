@@ -1,0 +1,441 @@
+﻿@startuml
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+scale max 3800 width
+skinparam nodesep 20
+skinparam ranksep 30
+left to right direction
+skinparam nodesep 35
+skinparam ranksep 45
+
+
+package "edu.rentcar.controller (MVC Presentation)" {
+    class ReservationController
+    class VehicleController
+    class CustomerController
+    class DashboardController
+    class MainController
+}
+
+package "edu.rentcar.builder (Builder Pattern)" {
+    class ReservationRequestBuilder {
+        - customer : Customer
+        - vehicle : Vehicle
+        - startDate : LocalDate
+        - endDate : LocalDate
+        - rentalMode : RentalMode
+        - selectedServices : List<ServiceComponent>
+        - paymentToken : String
+        + withCustomer(customer : Customer) : ReservationRequestBuilder
+        + withVehicle(vehicle : Vehicle) : ReservationRequestBuilder
+        + withDates(start : LocalDate, end : LocalDate) : ReservationRequestBuilder
+        + withRentalMode(mode : RentalMode) : ReservationRequestBuilder
+        + addService(service : ServiceComponent) : ReservationRequestBuilder
+        + withPaymentToken(token : String) : ReservationRequestBuilder
+        + build() : ReservationRequest
+    }
+}
+
+package "edu.rentcar.facade (Facade Pattern)" {
+    class RentalFacade {
+        - reservationRepository : ReservationRepository
+        - availabilityService : AvailabilityService
+        - pricingService : PricingService
+        - paymentGateway : PaymentGateway
+        + previewPricing(request : ReservationRequest) : PricingBreakdown
+        + isVehicleAvailable(vehicleId : String, start : LocalDate, end : LocalDate) : boolean
+        + processRental(request : ReservationRequest) : RentalOperationResult
+        + getAllReservations() : List<Reservation>
+    }
+}
+
+package "edu.rentcar.proxy (Proxy Pattern)" {
+    class VerifiedPaymentProxy {
+        - realPaymentGateway : PaymentGateway
+        - verificationService : CustomerVerificationService
+        + processPayment(request : PaymentRequest) : PaymentResult
+    }
+}
+
+package "edu.rentcar.adapter (Adapter Pattern)" {
+    interface PaymentGateway {
+        + processPayment(request : PaymentRequest) : PaymentResult
+    }
+
+    class PaymentAdapter {
+        - externalCaller : ExternalPaymentCaller
+        + processPayment(request : PaymentRequest) : PaymentResult
+    }
+}
+
+package "com.rentcar.paymentclient (External Library)" {
+    class PaymentApiClient {
+        + pay(request : PaymentApiRequest) : PaymentApiResponse
+    }
+}
+
+package "edu.rentcar.service (Business Services)" {
+    class CustomerVerificationService {
+        - customerRepository : CustomerRepository
+        + verifyCustomerAuthorization(customer : Customer) : boolean
+    }
+
+    class AvailabilityService {
+        - reservationRepository : ReservationRepository
+        + isVehicleAvailable(vehicleId : String, start : LocalDate, end : LocalDate) : boolean
+        + {static} intervalsOverlap(startA : LocalDate, endA : LocalDate, startB : LocalDate, endB : LocalDate) : boolean
+    }
+
+    class PricingService {
+        + buildDecoratedRental(request : ReservationRequest) : BillableRental
+        + calculateBreakdown(request : ReservationRequest) : PricingBreakdown
+    }
+
+    class VehicleService {
+        - vehicleRepository : VehicleRepository
+        + getAllVehicles() : List<Vehicle>
+        + registerVehicle(...) : Vehicle
+    }
+}
+
+package "edu.rentcar.repository (In-Memory Repositories)" {
+    class ReservationRepository {
+        - reservations : List<Reservation>
+        + save(reservation : Reservation) : Reservation
+        + findAll() : List<Reservation>
+        + findConfirmedByVehicleId(vehicleId : String) : List<Reservation>
+    }
+
+    class CustomerRepository {
+        - customers : List<Customer>
+        + findAll() : List<Customer>
+        + findById(id : String) : Optional<Customer>
+    }
+
+    class VehicleRepository {
+        - vehicles : List<Vehicle>
+        + findAll() : List<Vehicle>
+        + save(...) : Vehicle
+    }
+}
+
+package "edu.rentcar.factory (Abstract Factory Pattern)" {
+    interface RentalModeFactory {
+        + getRentalMode() : RentalMode
+        + createRatePolicy() : RatePolicy
+        + createCoveragePolicy() : CoveragePolicy
+        + createAssistancePolicy() : AssistancePolicy
+    }
+
+    interface RatePolicy {
+        + getPolicyName() : String
+        + calculateBaseVehicleCost(dailyRate : BigDecimal, days : long) : BigDecimal
+        + calculateModalityFee(dailyRate : BigDecimal, days : long) : BigDecimal
+    }
+
+    interface CoveragePolicy {
+        + getCoverageName() : String
+        + calculateCoverageCost(days : long) : BigDecimal
+        + getIncludedServiceCodes() : Set<String>
+    }
+
+    interface AssistancePolicy {
+        + getAssistanceName() : String
+        + calculateAssistanceCost(days : long) : BigDecimal
+    }
+
+    class BasicRentalModeFactory
+    class StandardRentalModeFactory
+    class PremiumRentalModeFactory
+
+    class BasicRatePolicy
+    class StandardRatePolicy
+    class PremiumRatePolicy
+
+    class BasicCoveragePolicy
+    class StandardCoveragePolicy
+    class PremiumCoveragePolicy
+
+    class BasicAssistancePolicy
+    class StandardAssistancePolicy
+    class PremiumAssistancePolicy
+
+    class RentalModeFactoryProvider {
+        + {static} getFactory(mode : RentalMode) : RentalModeFactory
+        + {static} registerFactory(factory : RentalModeFactory) : void
+    }
+}
+
+package "edu.rentcar.decorator (Decorator Pattern)" {
+    interface BillableRental {
+        + getRentalDays() : long
+        + getDescription() : String
+        + calculateCost() : BigDecimal
+        + getAppliedServiceCodes() : Set<String>
+    }
+
+    class BaseVehicleRental {
+        - vehicle : Vehicle
+        - rentalDays : long
+        - rentalMode : RentalMode
+        - ratePolicy : RatePolicy
+        - coveragePolicy : CoveragePolicy
+        - assistancePolicy : AssistancePolicy
+        + calculateCost() : BigDecimal
+    }
+
+    abstract class RentalDecorator {
+        # wrappedRental : BillableRental
+        + calculateCost() : BigDecimal
+        + getDescription() : String
+    }
+
+    class AdditionalServiceDecorator {
+        - serviceComponent : ServiceComponent
+        - addedCost : BigDecimal
+        + calculateCost() : BigDecimal
+        + getDescription() : String
+    }
+
+    class GpsServiceDecorator
+    class ChildSeatDecorator
+    class AdditionalDriverDecorator
+}
+
+package "edu.rentcar.composite (Composite Pattern)" {
+    interface ServiceComponent {
+        + getCode() : String
+        + getName() : String
+        + getDescription() : String
+        + isDailyRate() : boolean
+        + calculateCost(rentalDays : long) : BigDecimal
+        + getIncludedServiceCodes() : Set<String>
+    }
+
+    class SingleService {
+        - code : String
+        - name : String
+        - description : String
+        - unitPrice : BigDecimal
+        - dailyRate : boolean
+        + calculateCost(rentalDays : long) : BigDecimal
+    }
+
+    class ServicePackage {
+        - code : String
+        - name : String
+        - discountPercentage : BigDecimal
+        - components : List<ServiceComponent>
+        + addComponent(component : ServiceComponent) : ServicePackage
+        + removeComponent(component : ServiceComponent) : boolean
+        + calculateCost(rentalDays : long) : BigDecimal
+    }
+
+    class ServiceCatalog {
+        + {static} gpsService() : SingleService
+        + {static} childSeatService() : SingleService
+        + {static} additionalDriverService() : SingleService
+        + {static} familyPackage() : ServicePackage
+        + {static} executivePackage() : ServicePackage
+        + {static} allInclusiveTouringPackage() : ServicePackage
+    }
+}
+
+package "edu.rentcar.model (Domain Models)" {
+    class Customer {
+        - id : String
+        - fullName : String
+        - email : String
+        - authorized : boolean
+        + getId() : String
+        + getFullName() : String
+        + getEmail() : String
+        + isAuthorized() : boolean
+    }
+
+    class Vehicle {
+        - id : String
+        - brand : String
+        - model : String
+        - category : String
+        - modelYear : int
+        - dailyRate : double
+        - status : String
+        + getId() : String
+        + getDailyRate() : double
+        + getDisplayName() : String
+    }
+
+    enum RentalMode {
+        BASIC
+        STANDARD
+        PREMIUM
+    }
+
+    enum ReservationStatus {
+        PENDING
+        CONFIRMED
+        REJECTED
+        FAILED
+    }
+
+    enum PaymentStatus {
+        APPROVED
+        DECLINED
+        UNAUTHORIZED_CUSTOMER
+        TECHNICAL_ERROR
+        CONNECTION_ERROR
+    }
+
+    class ReservationRequest {
+        - customer : Customer
+        - vehicle : Vehicle
+        - startDate : LocalDate
+        - endDate : LocalDate
+        - rentalMode : RentalMode
+        - selectedServices : List<ServiceComponent>
+        - paymentToken : String
+        + getRentalDays() : long
+    }
+
+    class Reservation {
+        - id : String
+        - customerId : String
+        - customerName : String
+        - vehicleId : String
+        - vehicleName : String
+        - startDate : LocalDate
+        - endDate : LocalDate
+        - rentalMode : RentalMode
+        - totalCost : BigDecimal
+        - description : String
+        - reservationStatus : ReservationStatus
+        - statusMessage : String
+        + transitionTo(targetStatus : ReservationStatus, message : String) : void
+        + isConfirmed() : boolean
+    }
+
+    class PaymentRequest {
+        - reservationId : String
+        - customer : Customer
+        - amount : BigDecimal
+        - paymentToken : String
+    }
+
+    class PaymentResult {
+        - status : PaymentStatus
+        - message : String
+        - httpStatusCode : int
+        + isApproved() : boolean
+        + isDeclined() : boolean
+    }
+
+    class PricingBreakdown {
+        - rentalDays : long
+        - baseVehicleCost : BigDecimal
+        - modalityFee : BigDecimal
+        - coverageCost : BigDecimal
+        - assistanceCost : BigDecimal
+        - singleServicesCost : BigDecimal
+        - packagesCost : BigDecimal
+        - totalCost : BigDecimal
+        - fullDescription : String
+    }
+
+    class RentalOperationResult {
+        - success : boolean
+        - reservation : Reservation
+        - pricingBreakdown : PricingBreakdown
+        - paymentResult : PaymentResult
+        - userMessage : String
+    }
+}
+
+' Relationships with explicit multiplicities (cardinalities)
+ReservationRequestBuilder "1" ..> "1" ReservationRequest : builds >
+ReservationRequest "*" --> "1" Customer : customer >
+ReservationRequest "*" --> "1" Vehicle : vehicle >
+ReservationRequest "*" --> "1" RentalMode : rentalMode >
+ReservationRequest "*" o-- "0..*" ServiceComponent : selectedServices >
+
+Reservation "*" --> "1" RentalMode : rentalMode >
+Reservation "*" --> "1" ReservationStatus : reservationStatus >
+PaymentRequest "*" --> "1" Customer : customer >
+PaymentResult "*" --> "1" PaymentStatus : status >
+
+RentalOperationResult "1" --> "0..1" Reservation : reservation >
+RentalOperationResult "1" --> "1" PricingBreakdown : pricingBreakdown >
+RentalOperationResult "1" --> "0..1" PaymentResult : paymentResult >
+
+SingleService ..|> ServiceComponent
+ServicePackage ..|> ServiceComponent
+ServicePackage "1" o-- "0..*" ServiceComponent : components >
+ServiceCatalog "1" ..> "0..*" ServiceComponent : creates >
+
+BasicRentalModeFactory ..|> RentalModeFactory
+StandardRentalModeFactory ..|> RentalModeFactory
+PremiumRentalModeFactory ..|> RentalModeFactory
+
+BasicRatePolicy ..|> RatePolicy
+StandardRatePolicy ..|> RatePolicy
+PremiumRatePolicy ..|> RatePolicy
+
+BasicCoveragePolicy ..|> CoveragePolicy
+StandardCoveragePolicy ..|> CoveragePolicy
+PremiumCoveragePolicy ..|> CoveragePolicy
+
+BasicAssistancePolicy ..|> AssistancePolicy
+StandardAssistancePolicy ..|> AssistancePolicy
+PremiumAssistancePolicy ..|> AssistancePolicy
+
+RentalModeFactory "1" ..> "1" RatePolicy : creates >
+RentalModeFactory "1" ..> "1" CoveragePolicy : creates >
+RentalModeFactory "1" ..> "1" AssistancePolicy : creates >
+RentalModeFactoryProvider "1" o-- "3..*" RentalModeFactory : factories >
+
+BaseVehicleRental ..|> BillableRental
+BaseVehicleRental "*" --> "1" Vehicle : vehicle >
+BaseVehicleRental "*" --> "1" RentalMode : rentalMode >
+BaseVehicleRental "*" --> "1" RatePolicy : ratePolicy >
+BaseVehicleRental "*" --> "1" CoveragePolicy : coveragePolicy >
+BaseVehicleRental "*" --> "1" AssistancePolicy : assistancePolicy >
+
+RentalDecorator ..|> BillableRental
+RentalDecorator "1" o-- "1" BillableRental : wrappedRental >
+AdditionalServiceDecorator --|> RentalDecorator
+AdditionalServiceDecorator "*" --> "1" ServiceComponent : serviceComponent >
+GpsServiceDecorator --|> AdditionalServiceDecorator
+ChildSeatDecorator --|> AdditionalServiceDecorator
+AdditionalDriverDecorator --|> AdditionalServiceDecorator
+
+PaymentAdapter ..|> PaymentGateway
+PaymentAdapter "1" --> "1" PaymentApiClient : adapts >
+VerifiedPaymentProxy ..|> PaymentGateway
+VerifiedPaymentProxy "1" --> "1" PaymentGateway : realPaymentGateway >
+VerifiedPaymentProxy "1" --> "1" CustomerVerificationService : verificationService >
+
+CustomerVerificationService "1" --> "0..1" CustomerRepository : customerRepository >
+AvailabilityService "1" --> "1" ReservationRepository : reservationRepository >
+VehicleService "1" --> "1" VehicleRepository : vehicleRepository >
+
+CustomerRepository "1" o-- "0..*" Customer : customers >
+VehicleRepository "1" o-- "0..*" Vehicle : vehicles >
+ReservationRepository "1" o-- "0..*" Reservation : reservations >
+
+RentalFacade "1" --> "1" ReservationRepository : reservationRepository >
+RentalFacade "1" --> "1" AvailabilityService : availabilityService >
+RentalFacade "1" --> "1" PricingService : pricingService >
+RentalFacade "1" --> "1" PaymentGateway : paymentGateway >
+RentalFacade "1" ..> "0..*" RentalOperationResult : produces >
+
+PricingService "1" ..> "1" RentalModeFactoryProvider : uses >
+PricingService "1" ..> "1" BillableRental : builds >
+
+ReservationController "1" --> "1" RentalFacade : rentalFacade >
+ReservationController "1" ..> "0..*" ReservationRequestBuilder : uses >
+VehicleController "1" --> "1" VehicleService : vehicleService >
+CustomerController "1" --> "1" CustomerRepository : customerRepository >
+@enduml
+
+

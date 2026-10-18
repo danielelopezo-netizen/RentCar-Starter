@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.VBox?>
+
+<ScrollPane xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="edu.rentcar.controller.ReservationController"
+            fitToWidth="true"
+            stylesheets="@styles.css"
+            style="-fx-background-color: transparent;">
+    <content>
+        <VBox spacing="14" style="-fx-padding: 4;">
+            <!-- Top Row: Request Builder Form (Left) & Modality + Pricing Breakdown (Right) -->
+            <HBox spacing="14">
+                <!-- Left Card: Customer, Vehicle, Dates, Services & Packages -->
+                <VBox spacing="12" styleClass="card" HBox.hgrow="ALWAYS" prefWidth="480">
+                    <Label text="1. Rental Request Configuration (Builder)" styleClass="section-title"/>
+                    <GridPane hgap="10" vgap="10">
+                        <columnConstraints>
+                            <ColumnConstraints minWidth="115" prefWidth="125"/>
+                            <ColumnConstraints hgrow="ALWAYS"/>
+                        </columnConstraints>
+
+                        <Label text="Customer:" styleClass="field-label" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                        <ComboBox fx:id="customerCombo" maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+
+                        <Label text="Vehicle:" styleClass="field-label" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                        <ComboBox fx:id="vehicleCombo" maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+
+                        <Label text="Pick-up Date:" styleClass="field-label" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+                        <DatePicker fx:id="startDatePicker" maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+
+                        <Label text="Return Date:" styleClass="field-label" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+                        <DatePicker fx:id="endDatePicker" maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+
+                        <Label text="Rental Mode:" styleClass="field-label" GridPane.columnIndex="0" GridPane.rowIndex="4"/>
+                        <ComboBox fx:id="rentalModeCombo" maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="4"/>
+
+                        <Label text="Payment Token:" styleClass="field-label" GridPane.columnIndex="0" GridPane.rowIndex="5"/>
+                        <ComboBox fx:id="paymentTokenCombo" maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="5"/>
+                    </GridPane>
+
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Button text="Check Availability" onAction="#checkVehicleAvailability" styleClass="secondary-button"/>
+                        <Label fx:id="availabilityStatusLabel" text="Select vehicle and dates to check availability." wrapText="true" style="-fx-text-fill: #475569;"/>
+                    </HBox>
+
+                    <Separator/>
+
+                    <Label text="2. Optional Individual Services (Decorator)" styleClass="section-title"/>
+                    <GridPane hgap="12" vgap="8">
+                        <CheckBox fx:id="gpsCheckBox" text="GPS Navigation (25,000/day)" style="-fx-text-fill: #1e293b;" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                        <CheckBox fx:id="childSeatCheckBox" text="Child Safety Seat (20,000/day)" style="-fx-text-fill: #1e293b;" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+                        <CheckBox fx:id="additionalDriverCheckBox" text="Additional Driver (30,000/day)" style="-fx-text-fill: #1e293b;" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                        <CheckBox fx:id="wifiCheckBox" text="Portable Wi-Fi (18,000/day)" style="-fx-text-fill: #1e293b;" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                        <CheckBox fx:id="tollPassCheckBox" text="Electronic Toll Pass (35,000 flat)" style="-fx-text-fill: #1e293b;" GridPane.columnIndex="0" GridPane.rowIndex="2" GridPane.columnSpan="2"/>
+                    </GridPane>
+
+                    <Separator/>
+
+                    <Label text="3. Composite Service Packages (Composite)" styleClass="section-title"/>
+                    <VBox spacing="6">
+                        <CheckBox fx:id="familyPackageCheckBox" text="Family Comfort Package [GPS + Child Seat]" style="-fx-text-fill: #1e293b;"/>
+                        <CheckBox fx:id="executivePackageCheckBox" text="Executive Mobility Package [Additional Driver + Wi-Fi + Toll Pass]" style="-fx-text-fill: #1e293b;"/>
+                        <CheckBox fx:id="allInclusivePackageCheckBox" text="All-Inclusive Touring Package (Nested) [Family Package + Executive Services]" style="-fx-text-fill: #1e293b;"/>
+                    </VBox>
+                </VBox>
+
+                <!-- Right Card: Modality Details, Live Pricing Breakdown & Action Buttons -->
+                <VBox spacing="12" styleClass="card" HBox.hgrow="ALWAYS" prefWidth="480">
+                    <Label text="4. Modality Conditions (Abstract Factory)" styleClass="section-title"/>
+                    <VBox spacing="6" style="-fx-background-color: #f8fafc; -fx-padding: 10; -fx-background-radius: 6; -fx-border-color: #e2e8f0; -fx-border-radius: 6;">
+                        <Label fx:id="ratePolicyLabel" text="Tariff Policy: -" wrapText="true"/>
+                        <Label fx:id="coveragePolicyLabel" text="Coverage Policy: -" wrapText="true"/>
+                        <Label fx:id="assistancePolicyLabel" text="Assistance Policy: -" wrapText="true"/>
+                        <Label fx:id="includedServicesLabel" text="Included at no extra cost: -" wrapText="true" style="-fx-font-weight: bold; -fx-text-fill: #0f766e;"/>
+                    </VBox>
+
+                    <Separator/>
+
+                    <Label text="5. Cost Breakdown &amp; Request Summary" styleClass="section-title"/>
+                    <GridPane hgap="10" vgap="6">
+                        <columnConstraints>
+                            <ColumnConstraints minWidth="210" prefWidth="230"/>
+                            <ColumnConstraints hgrow="ALWAYS"/>
+                        </columnConstraints>
+
+                        <Label text="Rental Duration:" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                        <Label fx:id="rentalDaysLabel" text="0 days" styleClass="field-label" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+
+                        <Label text="Base Vehicle Rate:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                        <Label fx:id="baseRateCostLabel" text="0.00 COP" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+
+                        <Label text="Modality Tariff Surcharge:" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+                        <Label fx:id="modalityFeeCostLabel" text="0.00 COP" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+
+                        <Label text="Coverage Policy Cost:" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+                        <Label fx:id="coverageCostLabel" text="0.00 COP" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+
+                        <Label text="Assistance Policy Cost:" GridPane.columnIndex="0" GridPane.rowIndex="4"/>
+                        <Label fx:id="assistanceCostLabel" text="0.00 COP" GridPane.columnIndex="1" GridPane.rowIndex="4"/>
+
+                        <Label text="Individual Optional Services:" GridPane.columnIndex="0" GridPane.rowIndex="5"/>
+                        <Label fx:id="singleServicesCostLabel" text="0.00 COP" GridPane.columnIndex="1" GridPane.rowIndex="5"/>
+
+                        <Label text="Composite Service Packages:" GridPane.columnIndex="0" GridPane.rowIndex="6"/>
+                        <Label fx:id="packagesCostLabel" text="0.00 COP" GridPane.columnIndex="1" GridPane.rowIndex="6"/>
+
+                        <Label text="TOTAL COST:" style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #172b4d;" GridPane.columnIndex="0" GridPane.rowIndex="7"/>
+                        <Label fx:id="totalCostLabel" text="0.00 COP" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #1d4ed8;" GridPane.columnIndex="1" GridPane.rowIndex="7"/>
+                    </GridPane>
+
+                    <Label fx:id="requestDescriptionLabel" text="Summary: Select options to preview rental configuration." wrapText="true" style="-fx-text-fill: #475569; -fx-font-size: 12px;"/>
+
+                    <HBox spacing="10">
+                        <Button fx:id="calculateButton" text="Recalculate Summary" onAction="#updateSummaryAndPreview" styleClass="secondary-button"/>
+                        <Button fx:id="confirmRentalButton" text="Validate &amp; Process Rental" onAction="#processRentalRequest" styleClass="primary-button"/>
+                        <Button text="Reset Form" onAction="#resetForm" styleClass="secondary-button"/>
+                    </HBox>
+
+                    <Label fx:id="operationResultBanner" text="Ready to process rental reservation." wrapText="true" maxWidth="Infinity" styleClass="status-banner-neutral"/>
+                </VBox>
+            </HBox>
+
+            <!-- Bottom Card: Registered Reservations Table -->
+            <VBox spacing="10" styleClass="card">
+                <Label text="6. In-Memory Registered Reservations (Confirmed, Rejected &amp; Failed)" styleClass="section-title"/>
+                <TableView fx:id="reservationTable" prefHeight="210">
+                    <columns>
+                        <TableColumn fx:id="resIdColumn" text="ID" prefWidth="85"/>
+                        <TableColumn fx:id="resCustomerColumn" text="Customer" prefWidth="140"/>
+                        <TableColumn fx:id="resVehicleColumn" text="Vehicle" prefWidth="130"/>
+                        <TableColumn fx:id="resStartColumn" text="Start Date" prefWidth="95"/>
+                        <TableColumn fx:id="resEndColumn" text="End Date" prefWidth="95"/>
+                        <TableColumn fx:id="resModeColumn" text="Modality" prefWidth="90"/>
+                        <TableColumn fx:id="resTotalColumn" text="Total (COP)" prefWidth="110"/>
+                        <TableColumn fx:id="resStatusColumn" text="Status" prefWidth="100"/>
+                        <TableColumn fx:id="resMessageColumn" text="Details / Result" prefWidth="280"/>
+                    </columns>
+                </TableView>
+            </VBox>
+        </VBox>
+    </content>
+</ScrollPane>

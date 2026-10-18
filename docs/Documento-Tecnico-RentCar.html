@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Documento Técnico — Sistema RentCar (Parcial 2 · Programación II)</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 18mm 16mm 18mm 16mm;
+        }
+        body {
+            font-family: "Segoe UI", Roboto, Arial, sans-serif;
+            color: #1e293b;
+            line-height: 1.55;
+            font-size: 11pt;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header-box {
+            border-bottom: 3px solid #172b4d;
+            padding-bottom: 12px;
+            margin-bottom: 24px;
+        }
+        .header-box h1 {
+            color: #172b4d;
+            margin: 0 0 6px 0;
+            font-size: 20pt;
+        }
+        .header-box p {
+            margin: 3px 0;
+            color: #475569;
+            font-size: 10.5pt;
+        }
+        h2 {
+            color: #172b4d;
+            border-bottom: 1.5px solid #cbd5e1;
+            padding-bottom: 5px;
+            margin-top: 28px;
+            font-size: 15pt;
+            page-break-after: avoid;
+        }
+        h3 {
+            color: #2457a7;
+            margin-top: 20px;
+            margin-bottom: 8px;
+            font-size: 12.5pt;
+            page-break-after: avoid;
+        }
+        p, li {
+            text-align: justify;
+        }
+        ul, ol {
+            margin-top: 6px;
+            margin-bottom: 12px;
+        }
+        li {
+            margin-bottom: 5px;
+        }
+        code {
+            font-family: "Consolas", "Courier New", monospace;
+            background-color: #f1f5f9;
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-size: 9.5pt;
+            color: #0f172a;
+        }
+        .pattern-card {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #2457a7;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            page-break-inside: avoid;
+        }
+        .pattern-card h3 {
+            margin-top: 0;
+        }
+        .diagram-container {
+            text-align: center;
+            margin: 18px 0;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background: #ffffff;
+        }
+        .mermaid svg {
+            max-width: 100% !important;
+            height: auto !important;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 14px 0;
+            font-size: 10pt;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 8px 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #172b4d;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .formula {
+            background-color: #f1f5f9;
+            padding: 8px 14px;
+            border-radius: 6px;
+            text-align: center;
+            font-family: "Cambria Math", Georgia, serif;
+            font-size: 11.5pt;
+            margin: 10px 0;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+            class: {
+                useMaxWidth: true
+            }
+        });
+    </script>
+</head>
+<body>
+
+<div class="header-box">
+    <h1>Documento Técnico — Sistema RentCar</h1>
+    <p><strong>Facultad de Ingeniería — Programa de Ingeniería de Sistemas y Computación</strong></p>
+    <p><strong>Curso:</strong> Programación II · Parcial 2</p>
+    <p><strong>Integrantes:</strong> Daniel Esteven Lopez Ordoñez &bull; Juan Felipe Trujillo Urbina</p>
+    <p><strong>Tecnologías:</strong> Java 21, Gradle, JavaFX, FXML, CSS, JUnit 5</p>
+</div>
+
+<h2>1. Diagrama UML de Clases (con Cardinalidades)</h2>
+<p>
+    El siguiente diagrama UML de clases refleja fielmente las clases, interfaces, enumeraciones, relaciones y
+    <strong>multiplicidades (cardinalidades)</strong> implementadas en el código fuente del proyecto
+    (<code>src/main/java/edu/rentcar/...</code>).
+</p>
+
+<div class="diagram-container">
+    <pre class="mermaid">
+classDiagram
+    direction TB
+
+    class Customer {
+        -String id
+        -String fullName
+        -String email
+        -boolean authorized
+        +getId() String
+        +getFullName() String
+        +getEmail() String
+        +isAuthorized() boolean
+    }
+
+    class Vehicle {
+        -String id
+        -String brand
+        -String model
+        -String category
+        -int modelYear
+        -double dailyRate
+        -String status
+        +getId() String
+        +getDailyRate() double
+        +getDisplayName() String
+    }
+
+    class RentalMode {
+        &lt;&lt;enumeration&gt;&gt;
+        BASIC
+        STANDARD
+        PREMIUM
+    }
+
+    class ReservationStatus {
+        &lt;&lt;enumeration&gt;&gt;
+        PENDING
+        CONFIRMED
+        REJECTED
+        FAILED
+    }
+
+    class PaymentStatus {
+        &lt;&lt;enumeration&gt;&gt;
+        APPROVED
+        DECLINED
+        UNAUTHORIZED_CUSTOMER
+        TECHNICAL_ERROR
+        CONNECTION_ERROR
+    }
+
+    class ReservationRequest {
+        -Customer customer
+        -Vehicle vehicle
+        -LocalDate startDate
+        -LocalDate endDate
+        -RentalMode rentalMode
+        -List~ServiceComponent~ selectedServices
+        -String paymentToken
+        +getRentalDays() long
+    }
+
+    class Reservation {
+        -String id
+        -String customerId
+        -String customerName
+        -String vehicleId
+        -String vehicleName
+        -LocalDate startDate
+        -LocalDate endDate
+        -RentalMode rentalMode
+        -BigDecimal totalCost
+        -String description
+        -ReservationStatus reservationStatus
+        -String statusMessage
+        +transitionTo(ReservationStatus, String) void
+        +isConfirmed() boolean
+    }
+
+    class PaymentRequest {
+        -String reservationId
+        -Customer customer
+        -BigDecimal amount
+        -String paymentToken
+    }
+
+    class PaymentResult {
+        -PaymentStatus status
+        -String message
+        -int httpStatusCode
+        +isApproved() boolean
+        +isDeclined() boolean
+    }
+
+    class PricingBreakdown {
+        -long rentalDays
+        -BigDecimal baseVehicleCost
+        -BigDecimal modalityFee
+        -BigDecimal coverageCost
+        -BigDecimal assistanceCost
+        -BigDecimal singleServicesCost
+        -BigDecimal packagesCost
+        -BigDecimal totalCost
+        -String fullDescription
+    }
+
+    class RentalOperationResult {
+        -boolean success
+        -Reservation reservation
+        -PricingBreakdown pricingBreakdown
+        -PaymentResult paymentResult
+        -String userMessage
+    }
+
+    class ReservationRequestBuilder {
+        -Customer customer
+        -Vehicle vehicle
+        -LocalDate startDate
+        -LocalDate endDate
+        -RentalMode rentalMode
+        -List~ServiceComponent~ selectedServices
+        -String paymentToken
+        +withCustomer(Customer) ReservationRequestBuilder
+        +withVehicle(Vehicle) ReservationRequestBuilder
+        +withDates(LocalDate, LocalDate) ReservationRequestBuilder
+        +withRentalMode(RentalMode) ReservationRequestBuilder
+        +addService(ServiceComponent) ReservationRequestBuilder
+        +withPaymentToken(String) ReservationRequestBuilder
+        +build() ReservationRequest
+    }
+
+    class ServiceComponent {
+        &lt;&lt;interface&gt;&gt;
+        +getCode() String
+        +getName() String
+        +getDescription() String
+        +isDailyRate() boolean
+        +calculateCost(long rentalDays) BigDecimal
+        +getIncludedServiceCodes() Set~String~
+    }
+
+    class SingleService {
+        -String code
+        -String name
+        -String description
+        -BigDecimal unitPrice
+        -boolean dailyRate
+        +calculateCost(long rentalDays) BigDecimal
+    }
+
+    class ServicePackage {
+        -String code
+        -String name
+        -BigDecimal discountPercentage
+        -List~ServiceComponent~ components
+        +addComponent(ServiceComponent) ServicePackage
+        +removeComponent(ServiceComponent) boolean
+        +calculateCost(long rentalDays) BigDecimal
+    }
+
+    class RentalModeFactory {
+        &lt;&lt;interface&gt;&gt;
+        +getRentalMode() RentalMode
+        +createRatePolicy() RatePolicy
+        +createCoveragePolicy() CoveragePolicy
+        +createAssistancePolicy() AssistancePolicy
+    }
+
+    class RatePolicy {
+        &lt;&lt;interface&gt;&gt;
+        +getPolicyName() String
+        +calculateBaseVehicleCost(BigDecimal, long) BigDecimal
+        +calculateModalityFee(BigDecimal, long) BigDecimal
+    }
+
+    class CoveragePolicy {
+        &lt;&lt;interface&gt;&gt;
+        +getCoverageName() String
+        +calculateCoverageCost(long) BigDecimal
+        +getIncludedServiceCodes() Set~String~
+    }
+
+    class AssistancePolicy {
+        &lt;&lt;interface&gt;&gt;
+        +getAssistanceName() String
+        +calculateAssistanceCost(long) BigDecimal
+    }
+
+    class BasicRentalModeFactory
+    class StandardRentalModeFactory
+    class PremiumRentalModeFactory
+
+    class BasicRatePolicy
+    class StandardRatePolicy
+    class PremiumRatePolicy
+
+    class BasicCoveragePolicy
+    class StandardCoveragePolicy
+    class PremiumCoveragePolicy
+
+    class BasicAssistancePolicy
+    class StandardAssistancePolicy
+    class PremiumAssistancePolicy
+
+    class RentalModeFactoryProvider {
+        +getFactory(RentalMode)$ RentalModeFactory
+        +registerFactory(RentalModeFactory)$ void
+    }
+
+    class BillableRental {
+        &lt;&lt;interface&gt;&gt;
+        +getRentalDays() long
+        +getDescription() String
+        +calculateCost() BigDecimal
+        +getAppliedServiceCodes() Set~String~
+    }
+
+    class BaseVehicleRental {
+        -Vehicle vehicle
+        -long rentalDays
+        -RentalMode rentalMode
+        -RatePolicy ratePolicy
+        -CoveragePolicy coveragePolicy
+        -AssistancePolicy assistancePolicy
+        +calculateCost() BigDecimal
+    }
+
+    class RentalDecorator {
+        &lt;&lt;abstract&gt;&gt;
+        #BillableRental wrappedRental
+        +calculateCost() BigDecimal
+        +getDescription() String
+    }
+
+    class AdditionalServiceDecorator {
+        -ServiceComponent serviceComponent
+        -BigDecimal addedCost
+        +calculateCost() BigDecimal
+        +getDescription() String
+    }
+
+    class GpsServiceDecorator
+    class ChildSeatDecorator
+    class AdditionalDriverDecorator
+
+    class PaymentGateway {
+        &lt;&lt;interface&gt;&gt;
+        +processPayment(PaymentRequest) PaymentResult
+    }
+
+    class PaymentAdapter {
+        +processPayment(PaymentRequest) PaymentResult
+    }
+
+    class VerifiedPaymentProxy {
+        -PaymentGateway realPaymentGateway
+        -CustomerVerificationService verificationService
+        +processPayment(PaymentRequest) PaymentResult
+    }
+
+    class PaymentApiClient {
+        +pay(PaymentApiRequest) PaymentApiResponse
+    }
+
+    class CustomerVerificationService {
+        +verifyCustomerAuthorization(Customer) boolean
+    }
+
+    class AvailabilityService {
+        +isVehicleAvailable(String, LocalDate, LocalDate) boolean
+        +intervalsOverlap(LocalDate, LocalDate, LocalDate, LocalDate)$ boolean
+    }
+
+    class PricingService {
+        +buildDecoratedRental(ReservationRequest) BillableRental
+        +calculateBreakdown(ReservationRequest) PricingBreakdown
+    }
+
+    class ReservationRepository {
+        +save(Reservation) Reservation
+        +findAll() List~Reservation~
+        +findConfirmedByVehicleId(String) List~Reservation~
+    }
+
+    class RentalFacade {
+        -ReservationRepository reservationRepository
+        -AvailabilityService availabilityService
+        -PricingService pricingService
+        -PaymentGateway paymentGateway
+        +previewPricing(ReservationRequest) PricingBreakdown
+        +isVehicleAvailable(String, LocalDate, LocalDate) boolean
+        +processRental(ReservationRequest) RentalOperationResult
+        +getAllReservations() List~Reservation~
+    }
+
+    class ReservationController
+
+    ReservationRequestBuilder "1" ..> "1" ReservationRequest : builds
+    ReservationRequest "*" --> "1" Customer : customer
+    ReservationRequest "*" --> "1" Vehicle : vehicle
+    ReservationRequest "*" --> "1" RentalMode : rentalMode
+    ReservationRequest "*" o-- "0..*" ServiceComponent : selectedServices
+
+    Reservation "*" --> "1" RentalMode : rentalMode
+    Reservation "*" --> "1" ReservationStatus : reservationStatus
+    PaymentRequest "*" --> "1" Customer : customer
+    PaymentResult "*" --> "1" PaymentStatus : status
+
+    RentalOperationResult "1" --> "0..1" Reservation : reservation
+    RentalOperationResult "1" --> "1" PricingBreakdown : pricingBreakdown
+    RentalOperationResult "1" --> "0..1" PaymentResult : paymentResult
+
+    SingleService ..|> ServiceComponent
+    ServicePackage ..|> ServiceComponent
+    ServicePackage "1" o-- "0..*" ServiceComponent : components
+
+    BasicRentalModeFactory ..|> RentalModeFactory
+    StandardRentalModeFactory ..|> RentalModeFactory
+    PremiumRentalModeFactory ..|> RentalModeFactory
+
+    BasicRatePolicy ..|> RatePolicy
+    StandardRatePolicy ..|> RatePolicy
+    PremiumRatePolicy ..|> RatePolicy
+
+    BasicCoveragePolicy ..|> CoveragePolicy
+    StandardCoveragePolicy ..|> CoveragePolicy
+    PremiumCoveragePolicy ..|> CoveragePolicy
+
+    BasicAssistancePolicy ..|> AssistancePolicy
+    StandardAssistancePolicy ..|> AssistancePolicy
+    PremiumAssistancePolicy ..|> AssistancePolicy
+
+    RentalModeFactory "1" ..> "1" RatePolicy : creates
+    RentalModeFactory "1" ..> "1" CoveragePolicy : creates
+    RentalModeFactory "1" ..> "1" AssistancePolicy : creates
+    RentalModeFactoryProvider "1" o-- "3..*" RentalModeFactory : factories
+
+    BaseVehicleRental ..|> BillableRental
+    BaseVehicleRental "*" --> "1" Vehicle : vehicle
+    BaseVehicleRental "*" --> "1" RatePolicy : ratePolicy
+    BaseVehicleRental "*" --> "1" CoveragePolicy : coveragePolicy
+    BaseVehicleRental "*" --> "1" AssistancePolicy : assistancePolicy
+    RentalDecorator ..|> BillableRental
+    RentalDecorator "1" o-- "1" BillableRental : wrappedRental
+    AdditionalServiceDecorator --|> RentalDecorator
+    AdditionalServiceDecorator "*" --> "1" ServiceComponent : serviceComponent
+    GpsServiceDecorator --|> AdditionalServiceDecorator
+    ChildSeatDecorator --|> AdditionalServiceDecorator
+    AdditionalDriverDecorator --|> AdditionalServiceDecorator
+
+    PaymentAdapter ..|> PaymentGateway
+    PaymentAdapter "1" --> "1" PaymentApiClient : adapts
+    VerifiedPaymentProxy ..|> PaymentGateway
+    VerifiedPaymentProxy "1" --> "1" PaymentGateway : realPaymentGateway
+    VerifiedPaymentProxy "1" --> "1" CustomerVerificationService : verificationService
+
+    AvailabilityService "1" --> "1" ReservationRepository : reservationRepository
+    ReservationRepository "1" o-- "0..*" Reservation : reservations
+
+    RentalFacade "1" --> "1" ReservationRepository : reservationRepository
+    RentalFacade "1" --> "1" AvailabilityService : availabilityService
+    RentalFacade "1" --> "1" PricingService : pricingService
+    RentalFacade "1" --> "1" PaymentGateway : paymentGateway
+    RentalFacade "1" ..> "0..*" RentalOperationResult : produces
+    PricingService "1" ..> "1" RentalModeFactoryProvider : uses
+    PricingService "1" ..> "1" BillableRental : builds
+    ReservationController "1" --> "1" RentalFacade : rentalFacade
+    ReservationController "1" ..> "0..*" ReservationRequestBuilder : uses
+    </pre>
+</div>
+
+<h3>Tabla Resumen de Multiplicidades (Cardinalidades) en el UML</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Origen</th>
+            <th>Cardinalidad</th>
+            <th>Tipo de Relación</th>
+            <th>Destino</th>
+            <th>Explicación en el Dominio</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>ReservationRequest</code></td>
+            <td><code>*</code> &rarr; <code>1</code></td>
+            <td>Asociación dirigida</td>
+            <td><code>Customer</code> / <code>Vehicle</code> / <code>RentalMode</code></td>
+            <td>Muchas solicitudes pueden referenciar a 1 cliente, 1 vehículo y 1 modalidad obligatoria.</td>
+        </tr>
+        <tr>
+            <td><code>ReservationRequest</code></td>
+            <td><code>*</code> o-- <code>0..*</code></td>
+            <td>Agregación</td>
+            <td><code>ServiceComponent</code></td>
+            <td>Una solicitud puede incluir de cero a muchos servicios individuales o paquetes compuestos.</td>
+        </tr>
+        <tr>
+            <td><code>ServicePackage</code></td>
+            <td><code>1</code> o-- <code>0..*</code></td>
+            <td>Agregación recursiva (Composite)</td>
+            <td><code>ServiceComponent</code></td>
+            <td>Un paquete compuesto contiene una lista de cero o más componentes (servicios hoja u otros paquetes).</td>
+        </tr>
+        <tr>
+            <td><code>RentalDecorator</code></td>
+            <td><code>1</code> o-- <code>1</code></td>
+            <td>Agregación (Decorator)</td>
+            <td><code>BillableRental</code></td>
+            <td>Cada decorador envuelve exactamente a 1 instancia de <code>BillableRental</code>.</td>
+        </tr>
+        <tr>
+            <td><code>RentalModeFactoryProvider</code></td>
+            <td><code>1</code> o-- <code>3..*</code></td>
+            <td>Agregación</td>
+            <td><code>RentalModeFactory</code></td>
+            <td>El proveedor registra al menos las 3 fábricas concretas (<code>BASIC</code>, <code>STANDARD</code>, <code>PREMIUM</code>).</td>
+        </tr>
+        <tr>
+            <td><code>VerifiedPaymentProxy</code></td>
+            <td><code>1</code> &rarr; <code>1</code></td>
+            <td>Asociación dirigida (Proxy)</td>
+            <td><code>PaymentGateway</code> / <code>CustomerVerificationService</code></td>
+            <td>El Proxy verifica con 1 servicio de verificación y delega en 1 pasarela real (<code>PaymentAdapter</code>).</td>
+        </tr>
+        <tr>
+            <td><code>ReservationRepository</code></td>
+            <td><code>1</code> o-- <code>0..*</code></td>
+            <td>Agregación en memoria</td>
+            <td><code>Reservation</code></td>
+            <td>El repositorio almacena en memoria de cero a muchas reservaciones durante la ejecución.</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>2. Análisis del Problema y Pensamiento Computacional</h2>
+<p>
+    El sistema <strong>RentCar</strong> resuelve el problema de gestionar de manera íntegra, extensible y auditable el ciclo de vida
+    del alquiler de vehículos en una aplicación de escritorio bajo arquitectura MVC sin persistencia en base de datos. Para su diseño
+    se aplicaron los cuatro pilares del <strong>pensamiento computacional</strong>:
+</p>
+
+<h3>2.1. Descomposición (Decomposition)</h3>
+<p>El proceso complejo de alquiler se dividió en subsistemas cohesivos y desacoplados con responsabilidades únicas (Principio SRP):</p>
+<ol>
+    <li><strong>Construcción y validación de la solicitud (<code>edu.rentcar.builder</code>):</strong> Captura y validación de cliente, vehículo, rango de fechas, modalidad, servicios opcionales/paquetes y token de pago antes de iniciar cualquier transacción.</li>
+    <li><strong>Políticas por modalidad de alquiler (<code>edu.rentcar.factory</code>):</strong> Definición de reglas tarifarias, coberturas de seguro (con deducibles y servicios incluidos sin costo adicional) y asistencia vial según la modalidad (<code>BASIC</code>, <code>STANDARD</code>, <code>PREMIUM</code>).</li>
+    <li><strong>Modelado de servicios y paquetes (<code>edu.rentcar.composite</code> y <code>edu.rentcar.decorator</code>):</strong> Representación jerárquica de servicios individuales y paquetes anidados, junto con su adición dinámica al costo y descripción del alquiler evitando cobros duplicados.</li>
+    <li><strong>Control de disponibilidad temporal (<code>edu.rentcar.service.AvailabilityService</code>):</strong> Verificación centralizada de intersección de intervalos sobre reservaciones confirmadas.</li>
+    <li><strong>Seguridad y pasarela de pagos (<code>edu.rentcar.proxy</code> y <code>edu.rentcar.adapter</code>):</strong> Verificación obligatoria de autorización del cliente antes de transformar y enviar la petición HTTP al servicio externo <code>payment-api.jar</code>.</li>
+    <li><strong>Coordinación transaccional en memoria (<code>edu.rentcar.facade.RentalFacade</code>):</strong> Orquestación atómica del flujo desde la validación hasta la actualización del estado de la reservación (<code>PENDING</code> &rarr; <code>CONFIRMED</code> / <code>REJECTED</code> / <code>FAILED</code>).</li>
+</ol>
+
+<h3>2.2. Reconocimiento de Patrones (Pattern Recognition)</h3>
+<ul>
+    <li><strong>Construcción paso a paso con invariantes complejas:</strong> Construir <code>ReservationRequest</code> directamente desde controles JavaFX acoplaba la validación a la vista &rarr; <strong>Patrón Builder</strong>.</li>
+    <li><strong>Familias de políticas acopladas por modalidad:</strong> Cada modalidad requiere una combinación coherente de <code>RatePolicy</code>, <code>CoveragePolicy</code> y <code>AssistancePolicy</code> &rarr; <strong>Patrón Abstract Factory</strong>.</li>
+    <li><strong>Estructuras de árbol de servicios y paquetes:</strong> Un paquete puede contener servicios simples u otros sub-paquetes y ambos deben calcular su costo de manera uniforme &rarr; <strong>Patrón Composite</strong>.</li>
+    <li><strong>Combinación explosiva de extras:</strong> Crear subclases de alquiler por cada combinación de servicios es inviable (2<sup>n</sup> clases) &rarr; <strong>Patrón Decorator</strong>.</li>
+    <li><strong>Incompatibilidad de interfaces con librería externa:</strong> <code>PaymentApiClient</code> utiliza DTOs propios (<code>PaymentApiRequest</code>, <code>PaymentApiResponse</code> con <code>double</code>) y lanza <code>IOException</code> / <code>InterruptedException</code> &rarr; <strong>Patrón Adapter</strong>.</li>
+    <li><strong>Control de acceso previo al pago:</strong> Ningún cliente no autorizado debe disparar llamadas HTTP al proveedor externo &rarr; <strong>Patrón Proxy (Protection Proxy)</strong>.</li>
+    <li><strong>Acoplamiento entre vista y múltiples servicios:</strong> El controlador gráfico no debe orquestar repositorios, disponibilidad, tarifas, verificación y pagos &rarr; <strong>Patrón Facade</strong>.</li>
+</ul>
+
+<h3>2.3. Abstracción (Abstraction)</h3>
+<p>Se definieron contratos limpios mediante interfaces que ocultan los detalles de implementación:</p>
+<ul>
+    <li><code>ServiceComponent</code>: Abstrae tanto un servicio atómico (<code>SingleService</code>) como un paquete compuesto (<code>ServicePackage</code>).</li>
+    <li><code>BillableRental</code>: Abstrae cualquier alquiler tarifable sobre el cual se pueden apilar decoradores dinámicamente.</li>
+    <li><code>RentalModeFactory</code>, <code>RatePolicy</code>, <code>CoveragePolicy</code> y <code>AssistancePolicy</code>: Abstraen las familias de reglas de negocio de cada modalidad.</li>
+    <li><code>PaymentGateway</code>: Abstrae el procesamiento de pagos para que tanto el Proxy como el Adapter implementen exactamente el mismo contrato frente a la lógica de negocio.</li>
+</ul>
+
+<h3>2.4. Diseño Algorítmico (Algorithmic Thinking)</h3>
+<ul>
+    <li>
+        <strong>Algoritmo de intersección de intervalos temporales (<code>AvailabilityService.intervalsOverlap</code>):</strong>
+        Dado que una reserva ocupa el intervalo semiabierto [<em>startDate</em>, <em>endDate</em>) (permitiendo alquileres consecutivos el mismo día de devolución), dos intervalos [A<sub>start</sub>, A<sub>end</sub>) y [B<sub>start</sub>, B<sub>end</sub>) se solapan si y solo si:
+        <div class="formula">A<sub>start</sub> &lt; B<sub>end</sub> &nbsp;&and;&nbsp; B<sub>start</sub> &lt; A<sub>end</sub></div>
+    </li>
+    <li>
+        <strong>Algoritmo de deduplicación y prevención de doble cobro (<code>AdditionalServiceDecorator</code>):</strong>
+        Cada <code>BillableRental</code> propaga el conjunto <code>getAppliedServiceCodes()</code> que inicia con los servicios incluidos gratuitamente por la modalidad (<code>CoveragePolicy.getIncludedServiceCodes()</code>, como GPS en <code>STANDARD</code> y GPS + Conductor Adicional en <code>PREMIUM</code>). Al decorar con un servicio o paquete, solo se suman los servicios hoja que aún no estén aplicados, utilizando <code>BigDecimal</code> con <code>RoundingMode.HALF_UP</code> (escala 2).
+    </li>
+    <li>
+        <strong>Algoritmo de prevención de ciclos en paquetes (<code>ServicePackage.containsHierarchyReference</code>):</strong>
+        Recorrido recursivo en profundidad (DFS) que impide que un paquete se agregue a sí mismo directa o indirectamente.
+    </li>
+</ul>
+
+<h2>3. Explicación de los Siete Patrones de Diseño</h2>
+
+<div class="pattern-card">
+    <h3>3.1. Patrón Builder (Creacional — RF-001)</h3>
+    <ul>
+        <li><strong>Problema:</strong> Construir una solicitud de alquiler requiere validar múltiples campos obligatorios y reglas de fechas sin ensuciar el controlador JavaFX ni usar constructores telescópicos.</li>
+        <li><strong>Justificación:</strong> Permite ensamblar paso a paso una instancia inmutable de <code>ReservationRequest</code> concentrando todas las validaciones en <code>build()</code>.</li>
+        <li><strong>Clases participantes:</strong> <code>ReservationRequestBuilder</code> (Builder), <code>ReservationRequest</code> (Product), <code>ReservationController</code> (Client).</li>
+        <li><strong>Evidencia en código:</strong> <code>edu.rentcar.builder.ReservationRequestBuilder</code> valida cliente, vehículo, tarifa &gt; 0, fechas coherentes, modalidad y deduplicación de servicios antes de instanciar <code>ReservationRequest</code>.</li>
+        <li><strong>Ventajas y Limitaciones:</strong> Desacopla la validación de la interfaz y garantiza inmutabilidad; como limitación, requiere mantener sincronizados los atributos del Builder con los del Producto.</li>
+    </ul>
+</div>
+
+<div class="pattern-card">
+    <h3>3.2. Patrón Abstract Factory (Creacional — RF-003)</h3>
+    <ul>
+        <li><strong>Problema:</strong> Cada modalidad (<code>BASIC</code>, <code>STANDARD</code>, <code>PREMIUM</code>) exige una familia coherente de políticas de tarifa, cobertura y asistencia sin usar bloques <code>switch/if</code> repartidos por el sistema.</li>
+        <li><strong>Justificación:</strong> <code>RentalModeFactory</code> define la creación polimórfica de <code>RatePolicy</code>, <code>CoveragePolicy</code> y <code>AssistancePolicy</code> para cada modalidad.</li>
+        <li><strong>Clases participantes:</strong> <code>RentalModeFactory</code>, <code>BasicRentalModeFactory</code>, <code>StandardRentalModeFactory</code>, <code>PremiumRentalModeFactory</code>, <code>RentalModeFactoryProvider</code> y las 9 clases concretas de políticas (<code>Basic*</code>, <code>Standard*</code>, <code>Premium*</code>).</li>
+        <li><strong>Evidencia en código:</strong> <code>PricingService</code> y <code>ReservationController</code> invocan <code>RentalModeFactoryProvider.getFactory(mode)</code> para obtener las políticas e calcular recargos y servicios incluidos.</li>
+        <li><strong>Ventajas y Limitaciones:</strong> Cumple el principio Abierto/Cerrado (agregar una modalidad nueva solo requiere registrar una nueva fábrica); incrementa el número de clases si se añaden nuevos tipos de políticas.</li>
+    </ul>
+</div>
+
+<div class="pattern-card">
+    <h3>3.3. Patrón Facade (Estructural — RF-002)</h3>
+    <ul>
+        <li><strong>Problema:</strong> El proceso de alquiler involucra múltiples subsistemas (cálculo de costos, disponibilidad, persistencia en memoria, verificación del cliente y pago externo) que no deben ser coordinados por la interfaz gráfica.</li>
+        <li><strong>Justificación:</strong> <code>RentalFacade</code> ofrece métodos de alto nivel (<code>processRental</code>, <code>previewPricing</code>, <code>isVehicleAvailable</code>) que encapsulan el orden exacto de operaciones y la sincronización concurrente.</li>
+        <li><strong>Clases participantes:</strong> <code>RentalFacade</code> (Facade), <code>AvailabilityService</code>, <code>PricingService</code>, <code>ReservationRepository</code>, <code>PaymentGateway</code>.</li>
+        <li><strong>Evidencia en código:</strong> <code>RentalFacade.processRental(ReservationRequest)</code> ejecuta la validación de disponibilidad, crea la reserva en <code>PENDING</code>, invoca el pago y transiciona a <code>CONFIRMED</code>, <code>REJECTED</code> o <code>FAILED</code> dentro de un bloque sincronizado.</li>
+        <li><strong>Ventajas y Limitaciones:</strong> Desacopla totalmente los controladores JavaFX de los servicios internos y facilita las pruebas integrales sin UI; debe evitarse acumular lógica de cálculo directa dentro del Facade.</li>
+    </ul>
+</div>
+
+<div class="pattern-card">
+    <h3>3.4. Patrón Adapter (Estructural — RF-004)</h3>
+    <ul>
+        <li><strong>Problema:</strong> La biblioteca externa <code>PaymentApiClient</code> (en <code>libs/payment-client.jar</code>) usa records propios (<code>PaymentApiRequest</code> con <code>double</code> y <code>PaymentApiResponse</code>) y lanza <code>IOException</code>/<code>InterruptedException</code>, lo cual es incompatible con el modelo de dominio basado en <code>BigDecimal</code>.</li>
+        <li><strong>Justificación:</strong> <code>PaymentAdapter</code> implementa la interfaz interna <code>PaymentGateway</code> y traduce las solicitudes y respuestas HTTP (<code>200 APPROVED</code>, <code>200 NOT_APPROVED</code>, <code>503</code> y errores de red) al modelo interno <code>PaymentResult</code>.</li>
+        <li><strong>Clases participantes:</strong> <code>PaymentGateway</code> (Target), <code>PaymentAdapter</code> (Adapter), <code>PaymentApiClient</code> / <code>PaymentApiRequest</code> / <code>PaymentApiResponse</code> (Adaptee).</li>
+        <li><strong>Evidencia en código:</strong> <code>edu.rentcar.adapter.PaymentAdapter.processPayment(PaymentRequest)</code>.</li>
+        <li><strong>Ventajas y Limitaciones:</strong> Aísla el formato del proveedor HTTP externo y permite inyectar dobles de prueba en JUnit 5 sin requerir que el servidor esté encendido; añade una pequeña capa de mapeo de datos.</li>
+    </ul>
+</div>
+
+<div class="pattern-card">
+    <h3>3.5. Patrón Decorator (Estructural — RF-005)</h3>
+    <ul>
+        <li><strong>Problema:</strong> Permitir agregar dinámicamente cualquier combinación de servicios adicionales (GPS, silla infantil, conductor adicional, Wi-Fi, peajes o paquetes) sin crear una clase por cada combinación posible.</li>
+        <li><strong>Justificación:</strong> Envuelve un <code>BaseVehicleRental</code> con decoradores que implementan <code>BillableRental</code>, sumando costos en <code>BigDecimal</code> y concatenando descripciones dinámicamente.</li>
+        <li><strong>Clases participantes:</strong> <code>BillableRental</code> (Component), <code>BaseVehicleRental</code> (ConcreteComponent), <code>RentalDecorator</code> (Base Decorator), <code>AdditionalServiceDecorator</code>, <code>GpsServiceDecorator</code>, <code>ChildSeatDecorator</code>, <code>AdditionalDriverDecorator</code>.</li>
+        <li><strong>Evidencia en código:</strong> <code>PricingService.buildDecoratedRental</code> envuelve iterativamente el alquiler base y verifica <code>getAppliedServiceCodes()</code> para evitar cobros duplicados.</li>
+        <li><strong>Ventajas y Limitaciones:</strong> Evita la explosión combinatoria de subclases y permite combinar servicios libremente en tiempo de ejecución; genera cadenas de objetos anidados en memoria.</li>
+    </ul>
+</div>
+
+<div class="pattern-card">
+    <h3>3.6. Patrón Proxy (Estructural — RF-006)</h3>
+    <ul>
+        <li><strong>Problema:</strong> Garantizar en la capa de servicios que todo cliente sea verificado mediante <code>CustomerVerificationService</code> antes de procesar el pago, impidiendo que un cliente no autorizado genere peticiones HTTP a la API externa.</li>
+        <li><strong>Justificación:</strong> <code>VerifiedPaymentProxy</code> actúa como un <em>Protection Proxy</em> que implementa <code>PaymentGateway</code>, intercepta la llamada y bloquea el acceso a <code>PaymentAdapter</code> si la verificación retorna <code>false</code> o lanza excepción.</li>
+        <li><strong>Clases participantes:</strong> <code>PaymentGateway</code> (Subject), <code>VerifiedPaymentProxy</code> (Proxy), <code>PaymentAdapter</code> (RealSubject), <code>CustomerVerificationService</code>.</li>
+        <li><strong>Evidencia en código:</strong> <code>edu.rentcar.proxy.VerifiedPaymentProxy.processPayment(PaymentRequest)</code> y su prueba unitaria <code>VerifiedPaymentProxyTest</code> que demuestra <code>0</code> invocaciones al proveedor cuando el cliente no está autorizado.</li>
+        <li><strong>Ventajas y Limitaciones:</strong> Seguridad garantizada en capa de negocio (no depende de ocultar botones en la vista) y transparencia para <code>RentalFacade</code>; añade un salto de delegación previo al adaptador.</li>
+    </ul>
+</div>
+
+<div class="pattern-card">
+    <h3>3.7. Patrón Composite (Estructural — RF-007)</h3>
+    <ul>
+        <li><strong>Problema:</strong> Representar y tarifar de manera uniforme tanto servicios individuales como paquetes de servicios simples y paquetes anidados (paquetes que contienen otros paquetes).</li>
+        <li><strong>Justificación:</strong> La interfaz común <code>ServiceComponent</code> es implementada tanto por <code>SingleService</code> (hoja) como por <code>ServicePackage</code> (compuesto recursivo).</li>
+        <li><strong>Clases participantes:</strong> <code>ServiceComponent</code> (Component), <code>SingleService</code> (Leaf), <code>ServicePackage</code> (Composite), <code>ServiceCatalog</code>.</li>
+        <li><strong>Evidencia en código:</strong> <code>ServicePackage.calculateCost(long rentalDays)</code> calcula recursivamente el costo de sus hijos, y <code>ServiceCatalog.allInclusiveTouringPackage()</code> anida <code>familyPackage()</code> junto con servicios ejecutivos.</li>
+        <li><strong>Ventajas y Limitaciones:</strong> Trato uniforme para hojas y paquetes complejos en toda la aplicación; requiere validación explícita anticiclos (implementada en <code>ServicePackage.addComponent</code>).</li>
+    </ul>
+</div>
+
+</body>
+</html>

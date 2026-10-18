@@ -1,0 +1,247 @@
+DOCUMENTO TÉCNICO — SISTEMA RENTCAR (PARCIAL 2 · PROGRAMACIÓN II)
+================================================================================
+Facultad de Ingeniería — Programa de Ingeniería de Sistemas y Computación
+Curso: Programación II
+Proyecto: Sistema de Gestión de Alquiler de Vehículos (RentCar)
+Integrantes: Daniel Esteven Lopez Ordoñez | Juan Felipe Trujillo Urbina
+Tecnologías: Java 21, Gradle, JavaFX, FXML, CSS, JUnit 5
+================================================================================
+
+1. DIAGRAMA UML DE CLASES Y CARDINALIDADES (MULTIPLICIDADES)
+--------------------------------------------------------------------------------
+El diagrama UML completo se encuentra modelado tanto en PlantUML (docs/UML-RentCar.puml)
+como en Mermaid (docs/Documento-Tecnico-RentCar.md y docs/Documento-Tecnico-RentCar.html).
+
+Relaciones y Cardinalidades Exactas Implementadas en el Código:
+
+1.1. Construcción de Solicitudes (Patrón Builder):
+  - ReservationRequestBuilder "1" ..> "1" ReservationRequest : builds
+  - ReservationRequest "*" --> "1" Customer : customer
+  - ReservationRequest "*" --> "1" Vehicle : vehicle
+  - ReservationRequest "*" --> "1" RentalMode : rentalMode
+  - ReservationRequest "*" o-- "0..*" ServiceComponent : selectedServices
+
+1.2. Jerarquía de Servicios y Paquetes (Patrón Composite):
+  - SingleService ..|> ServiceComponent
+  - ServicePackage ..|> ServiceComponent
+  - ServicePackage "1" o-- "0..*" ServiceComponent : components
+  - ServiceCatalog "1" ..> "0..*" ServiceComponent : creates
+
+1.3. Familias de Políticas por Modalidad (Patrón Abstract Factory):
+  - BasicRentalModeFactory, StandardRentalModeFactory, PremiumRentalModeFactory ..|> RentalModeFactory
+  - BasicRatePolicy, StandardRatePolicy, PremiumRatePolicy ..|> RatePolicy
+  - BasicCoveragePolicy, StandardCoveragePolicy, PremiumCoveragePolicy ..|> CoveragePolicy
+  - BasicAssistancePolicy, StandardAssistancePolicy, PremiumAssistancePolicy ..|> AssistancePolicy
+  - RentalModeFactory "1" ..> "1" RatePolicy : creates
+  - RentalModeFactory "1" ..> "1" CoveragePolicy : creates
+  - RentalModeFactory "1" ..> "1" AssistancePolicy : creates
+  - RentalModeFactoryProvider "1" o-- "3..*" RentalModeFactory : factories
+
+1.4. Servicios Adicionales Dinámicos (Patrón Decorator):
+  - BaseVehicleRental ..|> BillableRental
+  - BaseVehicleRental "*" --> "1" Vehicle : vehicle
+  - BaseVehicleRental "*" --> "1" RatePolicy : ratePolicy
+  - BaseVehicleRental "*" --> "1" CoveragePolicy : coveragePolicy
+  - BaseVehicleRental "*" --> "1" AssistancePolicy : assistancePolicy
+  - RentalDecorator ..|> BillableRental
+  - RentalDecorator "1" o-- "1" BillableRental : wrappedRental
+  - AdditionalServiceDecorator --|> RentalDecorator
+  - AdditionalServiceDecorator "*" --> "1" ServiceComponent : serviceComponent
+  - GpsServiceDecorator, ChildSeatDecorator, AdditionalDriverDecorator --|> AdditionalServiceDecorator
+
+1.5. Verificación y Pasarela de Pagos (Patrones Proxy y Adapter):
+  - PaymentAdapter ..|> PaymentGateway
+  - PaymentAdapter "1" --> "1" PaymentApiClient : adapts
+  - VerifiedPaymentProxy ..|> PaymentGateway
+  - VerifiedPaymentProxy "1" --> "1" PaymentGateway : realPaymentGateway
+  - VerifiedPaymentProxy "1" --> "1" CustomerVerificationService : verificationService
+
+1.6. Coordinación del Alquiler y Repositorios en Memoria (Patrón Facade):
+  - RentalFacade "1" --> "1" ReservationRepository : reservationRepository
+  - RentalFacade "1" --> "1" AvailabilityService : availabilityService
+  - RentalFacade "1" --> "1" PricingService : pricingService
+  - RentalFacade "1" --> "1" PaymentGateway : paymentGateway
+  - RentalFacade "1" ..> "0..*" RentalOperationResult : produces
+  - ReservationRepository "1" o-- "0..*" Reservation : reservations
+  - VehicleRepository "1" o-- "0..*" Vehicle : vehicles
+  - CustomerRepository "1" o-- "0..*" Customer : customers
+  - ReservationController "1" --> "1" RentalFacade : rentalFacade
+  - ReservationController "1" ..> "0..*" ReservationRequestBuilder : uses
+
+
+================================================================================
+2. ANÁLISIS DEL PROBLEMA Y PENSAMIENTO COMPUTACIONAL
+================================================================================
+
+El sistema RentCar resuelve el problema de gestionar de manera íntegra, extensible
+y auditable el ciclo de vida del alquiler de vehículos en una aplicación de escritorio
+bajo arquitectura MVC sin persistencia en base de datos.
+
+2.1. Descomposición (Decomposition)
+El proceso complejo de alquiler se dividió en subsistemas cohesivos y desacoplados:
+  1) Construcción y validación de la solicitud (edu.rentcar.builder): Captura y
+     validación de cliente, vehículo, fechas, modalidad, servicios opcionales/paquetes
+     y token de pago antes de iniciar cualquier transacción.
+  2) Políticas por modalidad de alquiler (edu.rentcar.factory): Definición de reglas
+     tarifarias, coberturas de seguro (con servicios incluidos sin costo extra) y
+     asistencia vial según la modalidad (BASIC, STANDARD, PREMIUM).
+  3) Modelado de servicios y paquetes (edu.rentcar.composite y edu.rentcar.decorator):
+     Representación jerárquica de servicios individuales y paquetes anidados, junto
+     con su adición dinámica al costo y descripción del alquiler evitando cobros duplicados.
+  4) Control de disponibilidad temporal (edu.rentcar.service.AvailabilityService):
+     Verificación centralizada de intersección de intervalos sobre reservaciones confirmadas.
+  5) Seguridad y pasarela de pagos (edu.rentcar.proxy y edu.rentcar.adapter):
+     Verificación obligatoria de autorización del cliente antes de transformar y enviar
+     la petición HTTP al servicio externo payment-api.jar.
+  6) Coordinación transaccional en memoria (edu.rentcar.facade.RentalFacade):
+     Orquestación atómica del flujo desde la validación hasta la actualización del
+     estado de la reservación (PENDING -> CONFIRMED / REJECTED / FAILED).
+
+2.2. Reconocimiento de Patrones (Pattern Recognition)
+  - Construcción paso a paso con invariantes complejas -> Patrón Builder.
+  - Familias de políticas acopladas por modalidad -> Patrón Abstract Factory.
+  - Estructuras de árbol de servicios y paquetes -> Patrón Composite.
+  - Combinación explosiva de servicios opcionales (2^n combinaciones) -> Patrón Decorator.
+  - Incompatibilidad de interfaces con librería HTTP externa -> Patrón Adapter.
+  - Control de acceso obligatorio previo al pago -> Patrón Proxy (Protection Proxy).
+  - Acoplamiento entre vista JavaFX y múltiples servicios -> Patrón Facade.
+
+2.3. Abstracción (Abstraction)
+Se definieron contratos limpios mediante interfaces:
+  - ServiceComponent: Abstrae tanto un servicio atómico (SingleService) como un paquete
+    compuesto (ServicePackage).
+  - BillableRental: Abstrae cualquier alquiler tarifable sobre el cual se pueden apilar
+    decoradores dinámicamente.
+  - RentalModeFactory, RatePolicy, CoveragePolicy y AssistancePolicy: Abstraen las
+    familias de reglas de negocio de cada modalidad.
+  - PaymentGateway: Abstrae el procesamiento de pagos para que tanto el Proxy como el
+    Adapter implementen exactamente el mismo contrato frente a la lógica de negocio.
+
+2.4. Diseño Algorítmico (Algorithmic Thinking)
+  - Algoritmo de intersección de intervalos temporales (AvailabilityService.intervalsOverlap):
+    Dado que una reserva ocupa el intervalo semiabierto [startDate, endDate), dos intervalos
+    [startA, endA) y [startB, endB) se solapan si y solo si:
+        startA.isBefore(endB) && startB.isBefore(endA)
+    Esto permite alquileres consecutivos cuando endA.equals(startB).
+  - Algoritmo de deduplicación y prevención de doble cobro (AdditionalServiceDecorator):
+    Cada BillableRental propaga el conjunto getAppliedServiceCodes() que inicia con los
+    servicios incluidos gratuitamente por la modalidad (ej. GPS en STANDARD y GPS +
+    Conductor Adicional en PREMIUM). Al decorar con un servicio o paquete, solo se suman
+    los servicios hoja que aún no estén aplicados, utilizando BigDecimal (HALF_UP, escala 2).
+  - Algoritmo de prevención de ciclos en paquetes (ServicePackage.containsHierarchyReference):
+    Recorrido recursivo en profundidad (DFS) que impide que un paquete se agregue a sí
+    mismo directa o indirectamente.
+
+
+================================================================================
+3. EXPLICACIÓN DE LOS SIETE PATRONES DE DISEÑO
+================================================================================
+
+3.1. PATRÓN BUILDER (Creacional — RF-001)
+  - Problema: Construir una solicitud de alquiler requiere validar múltiples campos
+    obligatorios y reglas de fechas sin acoplar la validación al controlador JavaFX.
+  - Justificación: Permite ensamblar paso a paso una instancia inmutable de
+    ReservationRequest concentrando todas las validaciones en build().
+  - Clases participantes:
+    * Builder: edu.rentcar.builder.ReservationRequestBuilder
+    * Product: edu.rentcar.model.ReservationRequest
+    * Client: edu.rentcar.controller.ReservationController
+  - Evidencia en el código: ReservationRequestBuilder.build() ejecuta validateCustomer(),
+    validateVehicle(), validateDates(), validateRentalMode(), validateAndDeduplicateServices()
+    y validatePaymentToken().
+  - Ventajas: Desacopla la validación de la UI y garantiza inmutabilidad.
+  - Limitaciones: Requiere mantener sincronizados los campos del Builder con el Producto.
+
+3.2. PATRÓN ABSTRACT FACTORY (Creacional — RF-003)
+  - Problema: Cada modalidad (BASIC, STANDARD, PREMIUM) exige una familia coherente de
+    políticas de tarifa, cobertura y asistencia sin usar bloques switch/if dispersos.
+  - Justificación: RentalModeFactory define la creación polimórfica de RatePolicy,
+    CoveragePolicy y AssistancePolicy para cada modalidad.
+  - Clases participantes:
+    * AbstractFactory: RentalModeFactory
+    * ConcreteFactories: BasicRentalModeFactory, StandardRentalModeFactory, PremiumRentalModeFactory
+    * AbstractProducts: RatePolicy, CoveragePolicy, AssistancePolicy
+    * ConcreteProducts: BasicRatePolicy, StandardRatePolicy (+10%), PremiumRatePolicy (+20%),
+      BasicCoveragePolicy, StandardCoveragePolicy (incluye GPS), PremiumCoveragePolicy
+      (incluye GPS y Conductor Adicional), BasicAssistancePolicy, StandardAssistancePolicy,
+      PremiumAssistancePolicy.
+    * Provider: RentalModeFactoryProvider
+  - Evidencia en el código: PricingService y ReservationController invocan
+    RentalModeFactoryProvider.getFactory(mode) para instanciar la familia de políticas.
+  - Ventajas: Cumple el principio Abierto/Cerrado (OCP) y centraliza las tarifas.
+  - Limitaciones: Incrementa el número de clases si se añaden nuevos tipos de políticas.
+
+3.3. PATRÓN FACADE (Estructural — RF-002)
+  - Problema: El proceso de alquiler involucra múltiples subsistemas (cálculo de costos,
+    disponibilidad, repositorio de reservas, verificación del cliente y pago externo).
+  - Justificación: RentalFacade ofrece un punto de entrada único (processRental,
+    previewPricing, isVehicleAvailable) para la vista y las pruebas.
+  - Clases participantes:
+    * Facade: edu.rentcar.facade.RentalFacade
+    * Subsistemas: ReservationRepository, AvailabilityService, PricingService, PaymentGateway
+  - Evidencia en el código: RentalFacade.processRental(ReservationRequest) coordina todo
+    el flujo dentro de un bloque sincronizado evitando condiciones de carrera.
+  - Ventajas: Reduce drásticamente el acoplamiento de ReservationController.
+  - Limitaciones: Debe delegar en servicios especializados para no convertirse en God Class.
+
+3.4. PATRÓN ADAPTER (Estructural — RF-004)
+  - Problema: PaymentApiClient (en libs/payment-client.jar) usa DTOs externos
+    (PaymentApiRequest con double y PaymentApiResponse) y lanza IOException/InterruptedException.
+  - Justificación: PaymentAdapter implementa la interfaz interna PaymentGateway y traduce
+    las solicitudes y respuestas HTTP (200 APPROVED, 200 NOT_APPROVED, 503 y errores de red)
+    al modelo de dominio PaymentResult.
+  - Clases participantes:
+    * Target: edu.rentcar.adapter.PaymentGateway
+    * Adapter: edu.rentcar.adapter.PaymentAdapter
+    * Adaptee: com.rentcar.paymentclient.PaymentApiClient
+  - Evidencia en el código: PaymentAdapter.processPayment(PaymentRequest).
+  - Ventajas: Aísla el formato del proveedor HTTP externo y facilita pruebas con mocks.
+  - Limitaciones: Añade una capa de traducción de objetos por cada petición de pago.
+
+3.5. PATRÓN DECORATOR (Estructural — RF-005)
+  - Problema: Permitir agregar dinámicamente cualquier combinación de servicios adicionales
+    sin crear una clase para cada combinación posible.
+  - Justificación: Envuelve un BaseVehicleRental con decoradores que implementan
+    BillableRental, acumulando costos en BigDecimal y descripciones dinámicamente.
+  - Clases participantes:
+    * Component: BillableRental
+    * ConcreteComponent: BaseVehicleRental
+    * Decorator: RentalDecorator
+    * ConcreteDecorators: AdditionalServiceDecorator, GpsServiceDecorator,
+      ChildSeatDecorator, AdditionalDriverDecorator
+  - Evidencia en el código: PricingService.buildDecoratedRental envuelve iterativamente el
+    alquiler base y verifica getAppliedServiceCodes() para evitar cobros duplicados.
+  - Ventajas: Evita la explosión combinatoria de subclases y cumple el principio OCP.
+  - Limitaciones: Genera cadenas de objetos envolventes en memoria.
+
+3.6. PATRÓN PROXY (Estructural — RF-006)
+  - Problema: Garantizar en la capa de servicios que todo cliente sea verificado mediante
+    CustomerVerificationService antes de procesar el pago, impidiendo que un cliente no
+    autorizado genere peticiones HTTP a la API externa.
+  - Justificación: VerifiedPaymentProxy actúa como un Protection Proxy que implementa
+    PaymentGateway, intercepta la llamada y bloquea el acceso a PaymentAdapter si la
+    verificación retorna false o lanza excepción.
+  - Clases participantes:
+    * Subject: PaymentGateway
+    * Proxy: VerifiedPaymentProxy
+    * RealSubject: PaymentAdapter
+    * Collaborator: CustomerVerificationService
+  - Evidencia en el código: VerifiedPaymentProxy.processPayment(PaymentRequest) y
+    VerifiedPaymentProxyTest (0 invocaciones al proveedor para clientes no autorizados).
+  - Ventajas: Seguridad garantizada en capa de negocio sin depender de la interfaz gráfica.
+  - Limitaciones: Introduce una indirección adicional antes del adaptador de pagos.
+
+3.7. PATRÓN COMPOSITE (Estructural — RF-007)
+  - Problema: Representar y tarifar de manera uniforme tanto servicios individuales como
+    paquetes de servicios simples y paquetes anidados.
+  - Justificación: La interfaz común ServiceComponent es implementada tanto por
+    SingleService (hoja) como por ServicePackage (compuesto recursivo).
+  - Clases participantes:
+    * Component: ServiceComponent
+    * Leaf: SingleService
+    * Composite: ServicePackage
+    * Catalog: ServiceCatalog
+  - Evidencia en el código: ServicePackage.calculateCost(long rentalDays) calcula
+    recursivamente el costo de sus componentes y valida que no existan ciclos recursivos.
+  - Ventajas: Trato uniforme para servicios simples y paquetes anidados.
+  - Limitaciones: Requiere validación explícita anticiclos en addComponent().
